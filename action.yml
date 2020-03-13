@@ -1,13 +1,10 @@
-name: 'Wait'
-description: 'Wait a designated number of milliseconds'
+name: 'Add Annotations from JUnit Test Report Failures'
+description: 'Parses JUnit '
+author: "Qapital"
 inputs:
-  milliseconds:  # id of input
-    description: 'number of milliseconds to wait'
+  test_result_path:  # id of input
+    description: 'Location of the test report file. File location is relative to GITHUB_WORKSPACE.'
     required: true
-    default: '1000'
-outputs:
-  time: # output will be available to future steps 
-    description: 'The message to output'
 runs:
   using: 'node12'
-  main: 'dist/index.js'
+  main: 'lib/index.js'
