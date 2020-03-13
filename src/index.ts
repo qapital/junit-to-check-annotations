@@ -83,7 +83,7 @@ async function run() {
     const testResultPath = core.getInput('test_result_path');
     console.log("Reading test result from: ${GITHUB_WORKSPACE}/${testResultPath}");
     const testResult = await fs.promises.readFile(`${GITHUB_WORKSPACE}/${testResultPath}`);
-    const annotations = [];
+    const annotations = parseOutput(testResult.toString(), new RegExp(""));
 
     if (annotations.length > 0) {
       console.log("===============================================================")
