@@ -77,7 +77,7 @@ async function run() {
     console.log("About to parse rest results and create result.json file...");
     let millis = new Date().getTime();
 
-    await asyncExec(`cat ${GITHUB_WORKSPACE}/${testResultPath} | xq '[.testsuites.testsuite.testcase[] | select(.failure != null) | { classname: ."@classname", name: ."@name", failure: .failure."@message" }]' > ${GITHUB_WORKSPACE}/result.json`);
+    await asyncExec(`cat ${GITHUB_WORKSPACE}/${testResultPath} | xq '[.testsuites.testsuite.testcase | if type == "array" then .[] else . end | select(.failure != null) | { classname: ."@classname", name: ."@name", failure: .failure."@message" }]' > ${GITHUB_WORKSPACE}/result.json`);
     let result = new Date().getTime() - millis;
     console.log(`Created result.json file! (took: ${result} milliseconds)`);
 
