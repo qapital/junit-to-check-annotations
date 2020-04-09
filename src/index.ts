@@ -1,14 +1,14 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
-import * as octokit from '@octokit/rest';
-import * as fs from 'fs';
+import { Octokit } from '@octokit/rest';
 import { exec } from 'child_process';
+import * as fs from 'fs';
 import { promisify } from 'util';
 
 const asyncExec = promisify(exec);
 const { GITHUB_TOKEN, GITHUB_WORKSPACE } = process.env;
 
-type Annotation = octokit.Octokit.ChecksUpdateParamsOutputAnnotations;
+type Annotation = Octokit.ChecksUpdateParamsOutputAnnotations;
 
 // {
 //   "classname": "AmountFormatterTests",
@@ -43,7 +43,7 @@ function parseOutput(testFailures: TestFailure[]): Annotation[] {
 }
 
 async function createCheck(check_name: string, title: string, annotations: Annotation[]) {
-  const gh = new octokit.Octokit({ auth: String(GITHUB_TOKEN) });
+  const gh = new Octokit({ auth: String(GITHUB_TOKEN) });
   const req = {
     ...github.context.repo,
     ref: core.getInput('commit_sha')
@@ -77,7 +77,7 @@ async function run() {
     console.log("About to parse rest results and create result.json file...");
     let millis = new Date().getTime();
 
-    await asyncExec(`cat ${GITHUB_WORKSPACE}/${testResultPath} | xq '[.testsuites.testsuite.testcase[] | select(.failure != null)]' > ${GITHUB_WORKSPACE}/result.json`);
+    await asyncExec(`cat ${GITHUB_WORKSPACE}/${testResultPath} | xq '[.testsuites.testsuite.testcase[] | select(.failure != null) | { classname: ."@classname", name: ."@name", failure: .failure."@message" }]' > ${GITHUB_WORKSPACE}/result.json`);
     let result = new Date().getTime() - millis;
     console.log(`Created result.json file! (took: ${result} milliseconds)`);
 

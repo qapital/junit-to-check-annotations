@@ -7204,9 +7204,9 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
 const github = __importStar(__webpack_require__(469));
-const octokit = __importStar(__webpack_require__(613));
-const fs = __importStar(__webpack_require__(747));
+const rest_1 = __webpack_require__(613);
 const child_process_1 = __webpack_require__(129);
+const fs = __importStar(__webpack_require__(747));
 const util_1 = __webpack_require__(669);
 const asyncExec = util_1.promisify(child_process_1.exec);
 const { GITHUB_TOKEN, GITHUB_WORKSPACE } = process.env;
@@ -7230,7 +7230,7 @@ function parseOutput(testFailures) {
 }
 function createCheck(check_name, title, annotations) {
     return __awaiter(this, void 0, void 0, function* () {
-        const gh = new octokit.Octokit({ auth: String(GITHUB_TOKEN) });
+        const gh = new rest_1.Octokit({ auth: String(GITHUB_TOKEN) });
         const req = Object.assign(Object.assign({}, github.context.repo), { ref: core.getInput('commit_sha') });
         console.log(req);
         const res = yield gh.checks.listForRef(req);
@@ -7253,7 +7253,7 @@ function run() {
             console.log(`Reading test result from: ${GITHUB_WORKSPACE}/${testResultPath}`);
             console.log("About to parse rest results and create result.json file...");
             let millis = new Date().getTime();
-            yield asyncExec(`cat ${GITHUB_WORKSPACE}/${testResultPath} | xq '[.testsuites.testsuite.testcase[] | select(.failure != null)]' > ${GITHUB_WORKSPACE}/result.json`);
+            yield asyncExec(`cat ${GITHUB_WORKSPACE}/${testResultPath} | xq '[.testsuites.testsuite.testcase[] | select(.failure != null) | { classname: ."@classname", name: ."@name", failure: .failure."@message" }]' > ${GITHUB_WORKSPACE}/result.json`);
             let result = new Date().getTime() - millis;
             console.log(`Created result.json file! (took: ${result} milliseconds)`);
             const testResult = yield fs.promises.readFile(`${GITHUB_WORKSPACE}/result.json`);
