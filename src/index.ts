@@ -1,4 +1,4 @@
-import * as core from  '@actions/core';
+import * as core from '@actions/core';
 import * as github from '@actions/github';
 import * as octokit from '@octokit/rest';
 import * as fs from 'fs';
@@ -24,17 +24,18 @@ function parseOutput(testFailures: TestFailure[]): Annotation[] {
   let annotations: Annotation[] = [];
   for (let i = 0; i < testFailures.length; i++) {
     let error = testFailures[i];
-      const annotation = {
-        path: "./",
-        start_line: 1,
-        end_line: 1,
-        start_column: 1,
-        end_column: 1,
-        annotation_level: <const> 'failure',
-        message: `${error.classname}.${error.name}: ${error.failure}`,
-      };
 
-      annotations.push(annotation);
+    const annotation = {
+      path: "./",
+      start_line: 1,
+      end_line: 1,
+      start_column: 1,
+      end_column: 1,
+      annotation_level: <const>'failure',
+      message: `${error.classname}.${error.name}: ${error.failure}`,
+    };
+
+    annotations.push(annotation);
   }
   return annotations;
 }
@@ -67,13 +68,17 @@ async function createCheck(check_name: string, title: string, annotations: Annot
 
 // most @actions toolkit packages have async methods
 async function run() {
-  try { 
+  try {
     const testResultPath = core.getInput('test_result_path');
-    console.log("Reading test result from: ${GITHUB_WORKSPACE}/${testResultPath}");
+    console.log(`Reading test result from: ${GITHUB_WORKSPACE}/${testResultPath}`);
+
+    console.log("About to parse rest results and create result.json file...");
+    let millis = new Date().getTime();
 
     exec(`cat ${GITHUB_WORKSPACE}/${testResultPath} | xq '[.testsuites.testsuite.testcase[] | select(.failure != null)]' > ${GITHUB_WORKSPACE}/result.json`);
-    console.log("Created result.json file");
-    
+    let result = new Date().getTime() - millis;
+    console.log(`Created result.json file! (took: ${result} milliseconds)`);
+
     const testResult = await fs.promises.readFile(`${GITHUB_WORKSPACE}/result.json`);
     const parsedTestResult: TestFailure[] = JSON.parse(testResult.toString());
 
@@ -94,7 +99,7 @@ async function run() {
 
       core.setFailed(`${annotations.length} errors(s) found`);
     }
-  } 
+  }
   catch (error) {
     core.setFailed(error.message);
   }
