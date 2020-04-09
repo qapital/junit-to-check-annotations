@@ -30,7 +30,7 @@ function parseOutput(testFailures: TestFailure[]): Annotation[] {
         end_line: 1,
         start_column: 1,
         end_column: 1,
-        annotation_level: <const>'failure',
+        annotation_level: <const> 'failure',
         message: `${error.classname}.${error.name}: ${error.failure}`,
       };
 
@@ -91,10 +91,8 @@ async function run() {
       console.log(annotations);
       const checkName = core.getInput('check_name');
       await createCheck(checkName, 'failures detected', annotations);
-      const annotation_level = getAnnotationLevel();
-      if (annotation_level != 'warning') {
-        core.setFailed(`${annotations.length} errors(s) found`);
-      }
+
+      core.setFailed(`${annotations.length} errors(s) found`);
     }
   } 
   catch (error) {
