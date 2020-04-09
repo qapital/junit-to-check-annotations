@@ -1,5 +1,5 @@
 name: 'Add Annotations from JUnit Test Report Failures'
-description: 'Parses JUnit '
+description: 'Parses JUnit'
 author: "Qapital"
 inputs:
   test_result_path:  # id of input
@@ -7,4 +7,4 @@ inputs:
     required: true
 runs:
   using: 'node12'
-  main: 'lib/index.js'
+  main: 'dist/index.js'
