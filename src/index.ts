@@ -2,8 +2,10 @@ import * as core from '@actions/core';
 import * as github from '@actions/github';
 import * as octokit from '@octokit/rest';
 import * as fs from 'fs';
-import { execSync } from 'child_process';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 
+const asyncExec = promisify(exec);
 const { GITHUB_TOKEN, GITHUB_WORKSPACE } = process.env;
 
 type Annotation = octokit.Octokit.ChecksUpdateParamsOutputAnnotations;
@@ -75,7 +77,7 @@ async function run() {
     console.log("About to parse rest results and create result.json file...");
     let millis = new Date().getTime();
 
-    execSync(`cat ${GITHUB_WORKSPACE}/${testResultPath} | xq '[.testsuites.testsuite.testcase[] | select(.failure != null)]' > ${GITHUB_WORKSPACE}/result.json`);
+    await asyncExec(`cat ${GITHUB_WORKSPACE}/${testResultPath} | xq '[.testsuites.testsuite.testcase[] | select(.failure != null)]' > ${GITHUB_WORKSPACE}/result.json`);
     let result = new Date().getTime() - millis;
     console.log(`Created result.json file! (took: ${result} milliseconds)`);
 
