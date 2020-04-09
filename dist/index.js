@@ -7251,7 +7251,7 @@ function run() {
             console.log(`Reading test result from: ${GITHUB_WORKSPACE}/${testResultPath}`);
             console.log("About to parse rest results and create result.json file...");
             let millis = new Date().getTime();
-            child_process_1.exec(`cat ${GITHUB_WORKSPACE}/${testResultPath} | xq '[.testsuites.testsuite.testcase[] | select(.failure != null)]' > ${GITHUB_WORKSPACE}/result.json`);
+            child_process_1.execSync(`cat ${GITHUB_WORKSPACE}/${testResultPath} | xq '[.testsuites.testsuite.testcase[] | select(.failure != null)]' > ${GITHUB_WORKSPACE}/result.json`);
             let result = new Date().getTime() - millis;
             console.log(`Created result.json file! (took: ${result} milliseconds)`);
             const testResult = yield fs.promises.readFile(`${GITHUB_WORKSPACE}/result.json`);

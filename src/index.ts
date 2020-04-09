@@ -2,7 +2,7 @@ import * as core from '@actions/core';
 import * as github from '@actions/github';
 import * as octokit from '@octokit/rest';
 import * as fs from 'fs';
-import { exec } from 'child_process';
+import { execSync } from 'child_process';
 
 const { GITHUB_TOKEN, GITHUB_WORKSPACE } = process.env;
 
@@ -75,7 +75,7 @@ async function run() {
     console.log("About to parse rest results and create result.json file...");
     let millis = new Date().getTime();
 
-    exec(`cat ${GITHUB_WORKSPACE}/${testResultPath} | xq '[.testsuites.testsuite.testcase[] | select(.failure != null)]' > ${GITHUB_WORKSPACE}/result.json`);
+    execSync(`cat ${GITHUB_WORKSPACE}/${testResultPath} | xq '[.testsuites.testsuite.testcase[] | select(.failure != null)]' > ${GITHUB_WORKSPACE}/result.json`);
     let result = new Date().getTime() - millis;
     console.log(`Created result.json file! (took: ${result} milliseconds)`);
 
