@@ -47,15 +47,19 @@ async function createCheck(check_name: string, title: string, annotations: Annot
   const gh = new Octokit({ auth: AUTH_TOKEN });
   const req = {
     ...github.context.repo,
-    ref: core.getInput('commit_sha')
+    ref: core.getInput('commit_sha'),
   }
+
   console.log(req)
   const res = await gh.checks.listForRef(req);
-  console.log(res)
+  console.log(res);
 
-  const check_run_id = res.data.check_runs.filter(check => check.name === check_name)[0].id
+  console.log(res.data.check_runs);
+  res.data.check_runs.forEach(check_run => console.log(check_run));
 
-  const update_req = {
+  const check_run_id = res.data.check_runs.filter(check => check.name === check_name)[0].id;
+
+  const update_req: (Octokit.RequestOptions & Octokit.ChecksUpdateParams) = {
     ...github.context.repo,
     check_run_id,
     output: {
@@ -63,7 +67,7 @@ async function createCheck(check_name: string, title: string, annotations: Annot
       summary: `${annotations.length} errors(s) found`,
       annotations
     }
-  }
+  };
 
   console.log(update_req)
   await gh.checks.update(update_req);
