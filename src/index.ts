@@ -6,7 +6,8 @@ import * as fs from 'fs';
 import { promisify } from 'util';
 
 const asyncExec = promisify(exec);
-const { GITHUB_TOKEN, GITHUB_WORKSPACE } = process.env;
+const AUTH_TOKEN = core.getInput('token');
+const { GITHUB_WORKSPACE } = process.env;
 
 type Annotation = Octokit.ChecksUpdateParamsOutputAnnotations;
 
@@ -43,7 +44,7 @@ function parseOutput(testFailures: TestFailure[]): Annotation[] {
 }
 
 async function createCheck(check_name: string, title: string, annotations: Annotation[]) {
-  const gh = new Octokit({ auth: String(GITHUB_TOKEN) });
+  const gh = new Octokit({ auth: AUTH_TOKEN });
   const req = {
     ...github.context.repo,
     ref: core.getInput('commit_sha')

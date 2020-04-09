@@ -7209,7 +7209,8 @@ const child_process_1 = __webpack_require__(129);
 const fs = __importStar(__webpack_require__(747));
 const util_1 = __webpack_require__(669);
 const asyncExec = util_1.promisify(child_process_1.exec);
-const { GITHUB_TOKEN, GITHUB_WORKSPACE } = process.env;
+const AUTH_TOKEN = core.getInput('token');
+const { GITHUB_WORKSPACE } = process.env;
 // Regex match each line in the output and turn them into annotations
 function parseOutput(testFailures) {
     let annotations = [];
@@ -7230,7 +7231,7 @@ function parseOutput(testFailures) {
 }
 function createCheck(check_name, title, annotations) {
     return __awaiter(this, void 0, void 0, function* () {
-        const gh = new rest_1.Octokit({ auth: String(GITHUB_TOKEN) });
+        const gh = new rest_1.Octokit({ auth: AUTH_TOKEN });
         const req = Object.assign(Object.assign({}, github.context.repo), { ref: core.getInput('commit_sha') });
         console.log(req);
         const res = yield gh.checks.listForRef(req);
