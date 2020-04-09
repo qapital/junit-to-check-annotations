@@ -2,51 +2,39 @@ import * as core from  '@actions/core';
 import * as github from '@actions/github';
 import * as octokit from '@octokit/rest';
 import * as fs from 'fs';
+import { exec } from 'child_process';
 
 const { GITHUB_TOKEN, GITHUB_WORKSPACE } = process.env;
 
 type Annotation = octokit.Octokit.ChecksUpdateParamsOutputAnnotations;
 
-function getAnnotationLevel(): string {
-    let val: string = core.getInput('annotation_level');
-    if (!val) {
-        return <const>'failure';
-    } else {
-        return val;
-    }
+// {
+//   "classname": "AmountFormatterTests",
+//   "name": "test_shouldFormatToADollarString()",
+//   "failure": "expected to equal <validWithChanges(\"$4,0100\")>, got <validWithChanges(\"$4,010\")>  (/Users/vrutberg/code/qapital-iphone/Modules/ViewSupport/Tests/Tests/TextFieldFormatters/AmountFormatterTests.swift#CharacterRangeLen=0&EndingLineNumber=31&StartingLineNumber=31)"
+// }
+interface TestFailure {
+  classname: string;
+  name: string;
+  failure: string;
 }
 
 // Regex match each line in the output and turn them into annotations
-function parseOutput(output: string, regex: RegExp): Annotation[] {
-  let errors = output.split('\n');
+function parseOutput(testFailures: TestFailure[]): Annotation[] {
   let annotations: Annotation[] = [];
-  for (let i = 0; i < errors.length; i++) {
-    let error = errors[i];
-    let match = error.match(regex);
-    if (match) {
-      const groups = match.groups;
-      if (!groups) {
-        throw "No named capture groups in regex match.";
-      }
-      // Chop `./` off the front so that Github will recognize the file path
-      const normalized_path = groups.filename.replace('./', '');
-      const line = parseInt(groups.lineNumber);
-      const column = parseInt(groups.columnNumber);
-      const annotation_level = (getAnnotationLevel() == 'warning') ?
-        <const>'warning' :
-        <const>'failure';
+  for (let i = 0; i < testFailures.length; i++) {
+    let error = testFailures[i];
       const annotation = {
-        path: normalized_path,
-        start_line: line,
-        end_line: line,
-        start_column: column,
-        end_column: column,
-        annotation_level: annotation_level,
-        message: `[${groups.errorCode}] ${groups.errorDesc}`,
+        path: "./",
+        start_line: 1,
+        end_line: 1,
+        start_column: 1,
+        end_column: 1,
+        annotation_level: <const>'failure',
+        message: `${error.classname}.${error.name}: ${error.failure}`,
       };
 
       annotations.push(annotation);
-    }
   }
   return annotations;
 }
@@ -82,8 +70,16 @@ async function run() {
   try { 
     const testResultPath = core.getInput('test_result_path');
     console.log("Reading test result from: ${GITHUB_WORKSPACE}/${testResultPath}");
-    const testResult = await fs.promises.readFile(`${GITHUB_WORKSPACE}/${testResultPath}`);
-    const annotations = parseOutput(testResult.toString(), new RegExp(""));
+
+    exec(`cat ${GITHUB_WORKSPACE}/${testResultPath} | xq '[.testsuites.testsuite.testcase[] | select(.failure != null)]' > ${GITHUB_WORKSPACE}/result.json`);
+    console.log("Created result.json file");
+    
+    const testResult = await fs.promises.readFile(`${GITHUB_WORKSPACE}/result.json`);
+    const parsedTestResult: TestFailure[] = JSON.parse(testResult.toString());
+
+    console.log(`Parsed test result: ${parsedTestResult}`);
+
+    const annotations = parseOutput(parsedTestResult);
 
     if (annotations.length > 0) {
       console.log("===============================================================")
