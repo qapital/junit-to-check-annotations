@@ -3490,6 +3490,40 @@ function coerce (version) {
 
 /***/ }),
 
+/***/ 288:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+function parsePath(workspacePath, testFailure) {
+    let path = new RegExp(".+\\(" + workspacePath + "\\/([\\/\\w\\s-.]+).+\\)$");
+    let matches = path.exec(testFailure.failure);
+    return matches == null ? testFailure.failure : matches[1];
+}
+exports.parsePath = parsePath;
+function parseMessage(testFailure) {
+    let message = /(.+)\(.+\)$/;
+    let matches = message.exec(testFailure.failure);
+    return matches == null ? testFailure.failure : matches[1];
+}
+exports.parseMessage = parseMessage;
+function parseStartLine(testFailure) {
+    let startingLineNumber = /StartingLineNumber=(\d+)/;
+    let matches = startingLineNumber.exec(testFailure.failure);
+    return matches == null ? 1 : parseInt(matches[1]);
+}
+exports.parseStartLine = parseStartLine;
+function parseEndLine(testFailure) {
+    let endingLineNumber = /EndingLineNumber=(\d+)/;
+    let matches = endingLineNumber.exec(testFailure.failure);
+    return matches == null ? 1 : parseInt(matches[1]);
+}
+exports.parseEndLine = parseEndLine;
+
+
+/***/ }),
+
 /***/ 293:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -7208,40 +7242,21 @@ const rest_1 = __webpack_require__(613);
 const child_process_1 = __webpack_require__(129);
 const fs = __importStar(__webpack_require__(747));
 const util_1 = __webpack_require__(669);
+const parsing = __importStar(__webpack_require__(288));
 const asyncExec = util_1.promisify(child_process_1.exec);
 const AUTH_TOKEN = core.getInput('token');
 const { GITHUB_WORKSPACE } = process.env;
-function path(workspacePath, testFailure) {
-    let path = new RegExp(".+\\(" + workspacePath + "\\/([\\/\\w\\s-.]+).+\\)$");
-    let matches = path.exec(testFailure.failure);
-    return matches == null ? testFailure.failure : matches[1];
-}
-function message(testFailure) {
-    let message = /(.+)\(.+\)$/;
-    let matches = message.exec(testFailure.failure);
-    return matches == null ? testFailure.failure : matches[1];
-}
-function start_line(testFailure) {
-    let startingLineNumber = /StartingLineNumber=(\d+)/;
-    let matches = startingLineNumber.exec(testFailure.failure);
-    return matches == null ? 1 : parseInt(matches[1]);
-}
-function end_line(testFailure) {
-    let endingLineNumber = /EndingLineNumber=(\d+)/;
-    let matches = endingLineNumber.exec(testFailure.failure);
-    return matches == null ? 1 : parseInt(matches[1]);
-}
 // Regex match each line in the output and turn them into annotations
 function parseOutput(testFailures) {
     return testFailures.map(function (testFailure) {
         return {
-            path: path(GITHUB_WORKSPACE !== null && GITHUB_WORKSPACE !== void 0 ? GITHUB_WORKSPACE : "", testFailure),
-            start_line: start_line(testFailure),
-            end_line: end_line(testFailure),
+            path: parsing.parsePath(GITHUB_WORKSPACE !== null && GITHUB_WORKSPACE !== void 0 ? GITHUB_WORKSPACE : "", testFailure),
+            start_line: parsing.parseStartLine(testFailure),
+            end_line: parsing.parseEndLine(testFailure),
             start_column: 1,
             end_column: 1,
             annotation_level: 'failure',
-            message: `${testFailure.classname}.${testFailure.name}: ${message(testFailure)}`,
+            message: `${testFailure.classname}.${testFailure.name}: ${parsing.parseMessage(testFailure)}`,
         };
     });
 }
