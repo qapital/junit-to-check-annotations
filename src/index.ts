@@ -66,13 +66,10 @@ async function createCheck(check_name: string, title: string, annotations: Annot
   const req = {
     ...github.context.repo,
     ref: core.getInput('commit_sha'),
-  }
+  };
 
-  console.log(req)
   const res = await gh.checks.listForRef(req);
-  console.log(res);
 
-  console.log(res.data.check_runs);
   res.data.check_runs.forEach(check_run => console.log(check_run));
 
   const check_run_id = res.data.check_runs.filter(check => check.name === check_name)[0].id;
@@ -87,7 +84,6 @@ async function createCheck(check_name: string, title: string, annotations: Annot
     }
   };
 
-  console.log(update_req)
   await gh.checks.update(update_req);
 }
 
@@ -95,19 +91,11 @@ async function createCheck(check_name: string, title: string, annotations: Annot
 async function run() {
   try {
     const testResultPath = core.getInput('test_result_path');
-    console.log(`Reading test result from: ${GITHUB_WORKSPACE}/${testResultPath}`);
-
-    console.log("About to parse rest results and create result.json file...");
-    let millis = new Date().getTime();
 
     await asyncExec(`cat ${GITHUB_WORKSPACE}/${testResultPath} | xq '[.testsuites.testsuite.testcase | if type == "array" then .[] else . end | select(.failure != null) | { classname: ."@classname", name: ."@name", failure: .failure."@message" }]' > ${GITHUB_WORKSPACE}/result.json`);
-    let result = new Date().getTime() - millis;
-    console.log(`Created result.json file! (took: ${result} milliseconds)`);
 
     const testResult = await fs.promises.readFile(`${GITHUB_WORKSPACE}/result.json`);
     const parsedTestResult: TestFailure[] = JSON.parse(testResult.toString());
-
-    console.log(`Parsed test result: ${parsedTestResult}`);
 
     const annotations = parseOutput(parsedTestResult);
 
@@ -118,7 +106,6 @@ async function run() {
       console.log("|    Check the 'Files changed' tab for in-line annotations!   |")
       console.log("===============================================================")
 
-      console.log(annotations);
       const checkName = core.getInput('check_name');
       await createCheck(checkName, 'failures detected', annotations);
 
