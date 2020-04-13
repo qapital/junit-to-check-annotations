@@ -7211,33 +7211,39 @@ const util_1 = __webpack_require__(669);
 const asyncExec = util_1.promisify(child_process_1.exec);
 const AUTH_TOKEN = core.getInput('token');
 const { GITHUB_WORKSPACE } = process.env;
+function path(workspacePath, testFailure) {
+    let path = new RegExp(".+\\(" + workspacePath + "\\/([\\/\\w\\s-.]+).+\\)$");
+    let matches = path.exec(testFailure.failure);
+    return matches == null ? testFailure.failure : matches[1];
+}
+function message(testFailure) {
+    let message = /(.+)\(.+\)$/;
+    let matches = message.exec(testFailure.failure);
+    return matches == null ? testFailure.failure : matches[1];
+}
 function start_line(testFailure) {
-    let endingLineNumber = /StartingLineNumber=(\d+)/g;
-    let matches = endingLineNumber.exec(testFailure.failure);
+    let startingLineNumber = /StartingLineNumber=(\d+)/;
+    let matches = startingLineNumber.exec(testFailure.failure);
     return matches == null ? 1 : parseInt(matches[1]);
 }
 function end_line(testFailure) {
-    let endingLineNumber = /EndingLineNumber=(\d+)/g;
+    let endingLineNumber = /EndingLineNumber=(\d+)/;
     let matches = endingLineNumber.exec(testFailure.failure);
     return matches == null ? 1 : parseInt(matches[1]);
 }
 // Regex match each line in the output and turn them into annotations
 function parseOutput(testFailures) {
-    let annotations = [];
-    for (let i = 0; i < testFailures.length; i++) {
-        let error = testFailures[i];
-        const annotation = {
-            path: "./",
-            start_line: start_line(error),
-            end_line: end_line(error),
+    return testFailures.map(function (testFailure) {
+        return {
+            path: path(GITHUB_WORKSPACE !== null && GITHUB_WORKSPACE !== void 0 ? GITHUB_WORKSPACE : "", testFailure),
+            start_line: start_line(testFailure),
+            end_line: end_line(testFailure),
             start_column: 1,
             end_column: 1,
             annotation_level: 'failure',
-            message: `${error.classname}.${error.name}: ${error.failure}`,
+            message: `${testFailure.classname}.${testFailure.name}: ${message(testFailure)}`,
         };
-        annotations.push(annotation);
-    }
-    return annotations;
+    });
 }
 function createCheck(check_name, title, annotations) {
     return __awaiter(this, void 0, void 0, function* () {

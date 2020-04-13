@@ -22,37 +22,43 @@ interface TestFailure {
   failure: string;
 }
 
+function path(workspacePath: string, testFailure: TestFailure): string {
+  let path = new RegExp(".+\\(" + workspacePath + "\\/([\\/\\w\\s-.]+).+\\)$");
+  let matches = path.exec(testFailure.failure);
+  return matches == null ? testFailure.failure : matches[1];
+}
+
+function message(testFailure: TestFailure): string {
+  let message = /(.+)\(.+\)$/;
+  let matches = message.exec(testFailure.failure);
+  return matches == null ? testFailure.failure : matches[1];
+}
+
 function start_line(testFailure: TestFailure): number {
-  let endingLineNumber = /StartingLineNumber=(\d+)/g;
-  let matches = endingLineNumber.exec(testFailure.failure);
+  let startingLineNumber = /StartingLineNumber=(\d+)/;
+  let matches = startingLineNumber.exec(testFailure.failure);
   return matches == null ? 1 : parseInt(matches[1]);
 }
 
 function end_line(testFailure: TestFailure): number {
-  let endingLineNumber = /EndingLineNumber=(\d+)/g;
+  let endingLineNumber = /EndingLineNumber=(\d+)/;
   let matches = endingLineNumber.exec(testFailure.failure);
   return matches == null ? 1 : parseInt(matches[1]);
 }
 
 // Regex match each line in the output and turn them into annotations
 function parseOutput(testFailures: TestFailure[]): Annotation[] {
-  let annotations: Annotation[] = [];
-  for (let i = 0; i < testFailures.length; i++) {
-    let error = testFailures[i];
-
-    const annotation = {
-      path: "./",
-      start_line: start_line(error),
-      end_line: end_line(error),
+  return testFailures.map(function (testFailure: TestFailure): Annotation {
+    return {
+      path: path(GITHUB_WORKSPACE ?? "", testFailure),
+      start_line: start_line(testFailure),
+      end_line: end_line(testFailure),
       start_column: 1,
       end_column: 1,
       annotation_level: <const>'failure',
-      message: `${error.classname}.${error.name}: ${error.failure}`,
+      message: `${testFailure.classname}.${testFailure.name}: ${message(testFailure)}`,
     };
-
-    annotations.push(annotation);
-  }
-  return annotations;
+  });
 }
 
 async function createCheck(check_name: string, title: string, annotations: Annotation[]) {
