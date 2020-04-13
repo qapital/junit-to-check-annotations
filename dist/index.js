@@ -7211,6 +7211,16 @@ const util_1 = __webpack_require__(669);
 const asyncExec = util_1.promisify(child_process_1.exec);
 const AUTH_TOKEN = core.getInput('token');
 const { GITHUB_WORKSPACE } = process.env;
+function start_line(testFailure) {
+    let endingLineNumber = /StartingLineNumber=(\d+)/g;
+    let matches = endingLineNumber.exec(testFailure.failure);
+    return matches == null ? 1 : parseInt(matches[1]);
+}
+function end_line(testFailure) {
+    let endingLineNumber = /EndingLineNumber=(\d+)/g;
+    let matches = endingLineNumber.exec(testFailure.failure);
+    return matches == null ? 1 : parseInt(matches[1]);
+}
 // Regex match each line in the output and turn them into annotations
 function parseOutput(testFailures) {
     let annotations = [];
@@ -7218,8 +7228,8 @@ function parseOutput(testFailures) {
         let error = testFailures[i];
         const annotation = {
             path: "./",
-            start_line: 1,
-            end_line: 1,
+            start_line: start_line(error),
+            end_line: end_line(error),
             start_column: 1,
             end_column: 1,
             annotation_level: 'failure',

@@ -22,6 +22,18 @@ interface TestFailure {
   failure: string;
 }
 
+function start_line(testFailure: TestFailure): number {
+  let endingLineNumber = /StartingLineNumber=(\d+)/g;
+  let matches = endingLineNumber.exec(testFailure.failure);
+  return matches == null ? 1 : parseInt(matches[1]);
+}
+
+function end_line(testFailure: TestFailure): number {
+  let endingLineNumber = /EndingLineNumber=(\d+)/g;
+  let matches = endingLineNumber.exec(testFailure.failure);
+  return matches == null ? 1 : parseInt(matches[1]);
+}
+
 // Regex match each line in the output and turn them into annotations
 function parseOutput(testFailures: TestFailure[]): Annotation[] {
   let annotations: Annotation[] = [];
@@ -30,8 +42,8 @@ function parseOutput(testFailures: TestFailure[]): Annotation[] {
 
     const annotation = {
       path: "./",
-      start_line: 1,
-      end_line: 1,
+      start_line: start_line(error),
+      end_line: end_line(error),
       start_column: 1,
       end_column: 1,
       annotation_level: <const>'failure',
