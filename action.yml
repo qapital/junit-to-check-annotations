@@ -11,6 +11,9 @@ inputs:
   commit_sha:
     description: 'The commit SHA that this check is running on.'
     required: true
+  check_name:
+    description: 'The name of the check'
+    required: true
 runs:
   using: 'node12'
   main: 'dist/index.js'
