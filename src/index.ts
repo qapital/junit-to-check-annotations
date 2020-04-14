@@ -59,7 +59,7 @@ async function run() {
   try {
     const testResultPath = core.getInput('test_result_path');
 
-    await asyncExec(`cat ${GITHUB_WORKSPACE}/${testResultPath} | xq '[.testsuites.testsuite.testcase | if type == "array" then .[] else . end | select(.failure != null) | { classname: ."@classname", name: ."@name", failure: .failure."@message" }]' > ${GITHUB_WORKSPACE}/result.json`);
+    await asyncExec(`cat ${GITHUB_WORKSPACE}/${testResultPath} | xq '[.testsuites.testsuite | if type == "array" then .[] else . end | .testcase | if type == "array" then .[] else . end | select(.failure != null) | { classname: ."@classname", name: ."@name", failure: .failure."@message" }]' > ${GITHUB_WORKSPACE}/result.json`);
 
     const testResult = await fs.promises.readFile(`${GITHUB_WORKSPACE}/result.json`);
     const parsedTestResult: TestFailure[] = JSON.parse(testResult.toString());

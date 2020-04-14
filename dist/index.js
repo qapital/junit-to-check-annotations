@@ -7280,7 +7280,7 @@ function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const testResultPath = core.getInput('test_result_path');
-            yield asyncExec(`cat ${GITHUB_WORKSPACE}/${testResultPath} | xq '[.testsuites.testsuite.testcase | if type == "array" then .[] else . end | select(.failure != null) | { classname: ."@classname", name: ."@name", failure: .failure."@message" }]' > ${GITHUB_WORKSPACE}/result.json`);
+            yield asyncExec(`cat ${GITHUB_WORKSPACE}/${testResultPath} | xq '[.testsuites.testsuite | if type == "array" then .[] else . end | .testcase | if type == "array" then .[] else . end | select(.failure != null) | { classname: ."@classname", name: ."@name", failure: .failure."@message" }]' > ${GITHUB_WORKSPACE}/result.json`);
             const testResult = yield fs.promises.readFile(`${GITHUB_WORKSPACE}/result.json`);
             const parsedTestResult = JSON.parse(testResult.toString());
             const annotations = parseOutput(parsedTestResult);
