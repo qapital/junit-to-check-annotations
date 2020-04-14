@@ -9,7 +9,7 @@ import * as parsing from './parsing';
 
 const asyncExec = promisify(exec);
 const AUTH_TOKEN = core.getInput('token');
-const { GITHUB_WORKSPACE } = process.env;
+const { GITHUB_WORKSPACE, GITHUB_RUN_ID } = process.env;
 
 type Annotation = Octokit.ChecksUpdateParamsOutputAnnotations;
 
@@ -28,21 +28,9 @@ function parseOutput(testFailures: TestFailure[]): Annotation[] {
   });
 }
 
-async function createCheck(check_name: string, title: string, annotations: Annotation[]) {
-  const gh = new Octokit({ auth: AUTH_TOKEN });
-  const req = {
-    ...github.context.repo,
-    ref: core.getInput('commit_sha'),
-  };
-
-  const res = await gh.checks.listForRef(req);
-
-  res.data.check_runs.forEach(check_run => console.log(check_run));
-
-  console.log("request", req);
-  console.log("response", res);
-
-  const check_run_id = res.data.check_runs.filter(check => check.name === check_name)[0].id;
+async function createCheck(title: string, annotations: Annotation[]) {
+  const octokit = new Octokit({ auth: AUTH_TOKEN });
+  const check_run_id = parseInt(GITHUB_RUN_ID as string);
 
   const update_req: (Octokit.RequestOptions & Octokit.ChecksUpdateParams) = {
     ...github.context.repo,
@@ -54,7 +42,7 @@ async function createCheck(check_name: string, title: string, annotations: Annot
     }
   };
 
-  await gh.checks.update(update_req);
+  await octokit.checks.update(update_req);
 }
 
 // most @actions toolkit packages have async methods
@@ -76,8 +64,7 @@ async function run() {
       console.log("|    Check the 'Files changed' tab for in-line annotations!   |")
       console.log("===============================================================")
 
-      const checkName = core.getInput('check_name');
-      await createCheck(checkName, 'failures detected', annotations);
+      await createCheck('failures detected', annotations);
 
       core.setFailed(`${annotations.length} errors(s) found`);
     }
