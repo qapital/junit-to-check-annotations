@@ -7593,7 +7593,7 @@ const util_1 = __webpack_require__(669);
 const parsing = __importStar(__webpack_require__(288));
 const asyncExec = util_1.promisify(child_process_1.exec);
 const AUTH_TOKEN = core.getInput('token');
-const { GITHUB_WORKSPACE, GITHUB_SHA } = process.env;
+const { GITHUB_WORKSPACE, GITHUB_SHA, GITHUB_HEAD_REF } = process.env;
 // Regex match each line in the output and turn them into annotations
 function parseOutput(testFailures) {
     return testFailures.map(function (testFailure) {
@@ -7611,7 +7611,8 @@ function parseOutput(testFailures) {
 function createCheck(title, annotations) {
     return __awaiter(this, void 0, void 0, function* () {
         const octokit = new github.GitHub(AUTH_TOKEN);
-        const req = Object.assign(Object.assign({}, github.context.repo), { ref: GITHUB_SHA });
+        let ref = (GITHUB_HEAD_REF || GITHUB_SHA);
+        const req = Object.assign(Object.assign({}, github.context.repo), { ref });
         const res = yield octokit.checks.listForRef(req);
         res.data.check_runs.forEach(check_run => console.log(check_run));
         console.log("request", req);

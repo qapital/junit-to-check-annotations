@@ -9,7 +9,7 @@ import * as parsing from './parsing';
 
 const asyncExec = promisify(exec);
 const AUTH_TOKEN = core.getInput('token');
-const { GITHUB_WORKSPACE, GITHUB_SHA } = process.env;
+const { GITHUB_WORKSPACE, GITHUB_SHA, GITHUB_HEAD_REF } = process.env;
 
 type Annotation = Octokit.ChecksUpdateParamsOutputAnnotations;
 
@@ -31,9 +31,11 @@ function parseOutput(testFailures: TestFailure[]): Annotation[] {
 async function createCheck(title: string, annotations: Annotation[]) {
   const octokit = new github.GitHub(AUTH_TOKEN);
 
+  let ref = (GITHUB_HEAD_REF || GITHUB_SHA) as string;
+
   const req = {
     ...github.context.repo,
-    ref: GITHUB_SHA as string,
+    ref,
   };
 
   const res = await octokit.checks.listForRef(req);
