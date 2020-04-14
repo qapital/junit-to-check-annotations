@@ -72,17 +72,21 @@ async function run() {
 
     const annotations = parseOutput(parsedTestResult);
 
-    if (annotations.length > 0) {
-      console.log("===============================================================")
-      console.log("| FAILURES DETECTED                                           |")
-      console.log("|    You don't need to read this log output.                  |")
-      console.log("|    Check the 'Files changed' tab for in-line annotations!   |")
-      console.log("===============================================================")
+    annotations.forEach(function (annotation) {
+      console.log(`::error file=${annotation.path},line=${annotation.start_line}::${annotation.message}`);
+    });
 
-      await createCheck('failures detected', annotations);
+    // if (annotations.length > 0) {
+      // console.log("===============================================================")
+      // console.log("| FAILURES DETECTED                                           |")
+      // console.log("|    You don't need to read this log output.                  |")
+      // console.log("|    Check the 'Files changed' tab for in-line annotations!   |")
+      // console.log("===============================================================")
 
-      core.setFailed(`${annotations.length} errors(s) found`);
-    }
+      // await createCheck('failures detected', annotations);
+
+      // core.setFailed(`${annotations.length} errors(s) found`);
+    // }
   }
   catch (error) {
     core.setFailed(error.message);
