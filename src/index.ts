@@ -1,5 +1,4 @@
 import * as core from '@actions/core';
-import * as github from '@actions/github';
 import { Octokit } from '@octokit/rest';
 import { exec } from 'child_process';
 import * as fs from 'fs';
@@ -8,8 +7,7 @@ import { TestFailure } from './testfailure';
 import * as parsing from './parsing';
 
 const asyncExec = promisify(exec);
-const AUTH_TOKEN = core.getInput('token');
-const { GITHUB_WORKSPACE, GITHUB_SHA, GITHUB_HEAD_REF } = process.env;
+const { GITHUB_WORKSPACE } = process.env;
 
 type Annotation = Octokit.ChecksUpdateParamsOutputAnnotations;
 
@@ -28,44 +26,16 @@ function parseOutput(testFailures: TestFailure[]): Annotation[] {
   });
 }
 
-async function createCheck(title: string, annotations: Annotation[]) {
-  const octokit = new github.GitHub(AUTH_TOKEN);
-
-  let ref = (GITHUB_HEAD_REF || GITHUB_SHA) as string;
-
-  const req = {
-    ...github.context.repo,
-    ref,
-  };
-
-  const res = await octokit.checks.listForRef(req);
-
-  res.data.check_runs.forEach(check_run => console.log(check_run));
-
-  console.log("request", req);
-  console.log("response", res);
-
-  const check_run_id = res.data.check_runs[0].id;
-
-  const update_req: (Octokit.RequestOptions & Octokit.ChecksUpdateParams) = {
-    ...github.context.repo,
-    check_run_id,
-    output: {
-      title,
-      summary: `${annotations.length} errors(s) found`,
-      annotations
-    }
-  };
-
-  await octokit.checks.update(update_req);
-}
-
-// most @actions toolkit packages have async methods
 async function run() {
   try {
     const testResultPath = core.getInput('test_result_path');
+    const outputFilePath = `${GITHUB_WORKSPACE}/${testResultPath}`;
 
-    await asyncExec(`cat ${GITHUB_WORKSPACE}/${testResultPath} | xq '[.testsuites.testsuite | if type == "array" then .[] else . end | .testcase | if type == "array" then .[] else . end | select(.failure != null) | { classname: ."@classname", name: ."@name", failure: .failure."@message" }]' > ${GITHUB_WORKSPACE}/result.json`);
+    if (!fs.existsSync(outputFilePath)) {
+      return;
+    }
+
+    await asyncExec(`cat ${outputFilePath} | xq '[.testsuites.testsuite | if type == "array" then .[] else . end | .testcase | if type == "array" then .[] else . end | select(.failure != null) | { classname: ."@classname", name: ."@name", failure: .failure."@message" }]' > ${GITHUB_WORKSPACE}/result.json`);
 
     const testResult = await fs.promises.readFile(`${GITHUB_WORKSPACE}/result.json`);
     const parsedTestResult: TestFailure[] = JSON.parse(testResult.toString());
@@ -75,18 +45,6 @@ async function run() {
     annotations.forEach(function (annotation) {
       console.log(`::error file=${annotation.path},line=${annotation.start_line}::${annotation.message}`);
     });
-
-    // if (annotations.length > 0) {
-      // console.log("===============================================================")
-      // console.log("| FAILURES DETECTED                                           |")
-      // console.log("|    You don't need to read this log output.                  |")
-      // console.log("|    Check the 'Files changed' tab for in-line annotations!   |")
-      // console.log("===============================================================")
-
-      // await createCheck('failures detected', annotations);
-
-      // core.setFailed(`${annotations.length} errors(s) found`);
-    // }
   }
   catch (error) {
     core.setFailed(error.message);

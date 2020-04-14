@@ -5,9 +5,6 @@ inputs:
   test_result_path:
     description: 'Location of the test report file. File location is relative to GITHUB_WORKSPACE.'
     required: true
-  token:
-    description: 'The authentication token to use when posting check annotations.'
-    required: true
 runs:
   using: 'node12'
   main: 'dist/index.js'
