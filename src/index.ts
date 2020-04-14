@@ -9,7 +9,7 @@ import * as parsing from './parsing';
 
 const asyncExec = promisify(exec);
 const AUTH_TOKEN = core.getInput('token');
-const { GITHUB_WORKSPACE, GITHUB_RUN_ID, GITHUB_RUN_NUMBER } = process.env;
+const { GITHUB_WORKSPACE, GITHUB_SHA } = process.env;
 
 type Annotation = Octokit.ChecksUpdateParamsOutputAnnotations;
 
@@ -30,15 +30,23 @@ function parseOutput(testFailures: TestFailure[]): Annotation[] {
 
 async function createCheck(title: string, annotations: Annotation[]) {
   const octokit = new Octokit({ auth: AUTH_TOKEN });
-  const check_run_id = parseInt(GITHUB_RUN_ID as string);
-  const check_run_number = parseInt(GITHUB_RUN_NUMBER as string);
+  const req = {
+    ...github.context.repo,
+    ref: GITHUB_SHA as string,
+  };
 
-  console.log("check_run_id", check_run_id);
-  console.log("check_run_number", check_run_number);
+  const res = await octokit.checks.listForRef(req);
+
+  res.data.check_runs.forEach(check_run => console.log(check_run));
+
+  console.log("request", req);
+  console.log("response", res);
+
+  const check_run_id = res.data.check_runs[0].id;
 
   const update_req: (Octokit.RequestOptions & Octokit.ChecksUpdateParams) = {
     ...github.context.repo,
-    check_run_id: check_run_number,
+    check_run_id,
     output: {
       title,
       summary: `${annotations.length} errors(s) found`,
