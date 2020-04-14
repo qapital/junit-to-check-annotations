@@ -29,7 +29,8 @@ function parseOutput(testFailures: TestFailure[]): Annotation[] {
 }
 
 async function createCheck(title: string, annotations: Annotation[]) {
-  const octokit = new Octokit({ auth: AUTH_TOKEN });
+  const octokit = new github.GitHub(AUTH_TOKEN);
+
   const req = {
     ...github.context.repo,
     ref: GITHUB_SHA as string,
