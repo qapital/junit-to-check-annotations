@@ -32,6 +32,8 @@ async function createCheck(title: string, annotations: Annotation[]) {
   const octokit = new Octokit({ auth: AUTH_TOKEN });
   const check_run_id = parseInt(GITHUB_RUN_ID as string);
 
+  console.log("attempting to update check with id", check_run_id);
+
   const update_req: (Octokit.RequestOptions & Octokit.ChecksUpdateParams) = {
     ...github.context.repo,
     check_run_id,
