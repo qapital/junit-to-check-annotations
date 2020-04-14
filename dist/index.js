@@ -7266,6 +7266,8 @@ function createCheck(check_name, title, annotations) {
         const req = Object.assign(Object.assign({}, github.context.repo), { ref: core.getInput('commit_sha') });
         const res = yield gh.checks.listForRef(req);
         res.data.check_runs.forEach(check_run => console.log(check_run));
+        console.log("request", req);
+        console.log("response", res);
         const check_run_id = res.data.check_runs.filter(check => check.name === check_name)[0].id;
         const update_req = Object.assign(Object.assign({}, github.context.repo), { check_run_id, output: {
                 title,
