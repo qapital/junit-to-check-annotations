@@ -2,19 +2,21 @@ import * as core from "@actions/core";
 import { Octokit } from "@octokit/rest";
 import { exec } from "child_process";
 import * as fs from "fs";
+import * as path from "path";
 import { promisify } from "util";
 import { TestFailure } from "./testfailure";
 import * as xmlParser from "fast-xml-parser";
 import * as parsing from "./parsing";
 import { TestResult } from "./testresult";
 
+const readdir = promisify(fs.readdir);
 const asyncExec = promisify(exec);
 const { GITHUB_WORKSPACE } = process.env;
 
 type Annotation = Octokit.ChecksUpdateParamsOutputAnnotations;
 
 // Regex match each line in the output and turn them into annotations
-function parseOutput(testFailures: TestFailure[]): Annotation[] {
+function convertToAnnotations(testFailures: TestFailure[]): Annotation[] {
   return testFailures.map(function (testFailure: TestFailure): Annotation {
     return {
       path: parsing.parsePath(GITHUB_WORKSPACE ?? "", testFailure),
@@ -30,11 +32,53 @@ function parseOutput(testFailures: TestFailure[]): Annotation[] {
   });
 }
 
-export function flatMap<T, U>(
+function flatMap<T, U>(
   array: T[],
   callbackfn: (value: T, index: number, array: T[]) => U[]
 ): U[] {
   return Array.prototype.concat(...array.map(callbackfn));
+}
+
+function flatten<T>(array: T[][]): T[] {
+  return flatMap(array, (array) => array);
+}
+
+async function convertBufferToTestFailures(
+  filename: string
+): Promise<TestFailure[]> {
+  const buffer = await fs.promises.readFile(filename);
+  const testResult: TestResult = xmlParser.parse(buffer.toString(), {
+    attributeNamePrefix: "____",
+    ignoreAttributes: false,
+    arrayMode: "strict",
+  });
+
+  const cases = flatMap(testResult.testsuites, (suite) =>
+    flatMap(suite.testsuite, (suite) => suite.testcase)
+  );
+
+  return cases
+    .filter((c) => c.failure)
+    .map((c) => {
+      c.failure?.[0].____message;
+      return new TestFailure(
+        c.____classname,
+        c.____name,
+        c.failure?.[0].____message ?? ""
+      );
+    });
+}
+
+async function parseFileNames(outputFilePath: string) {
+  const directory = fs.lstatSync(outputFilePath).isDirectory();
+  if (directory) {
+    const dir = await readdir(outputFilePath);
+    return dir
+      .filter((filename) => path.extname(filename) === ".xml")
+      .map((filename) => `${outputFilePath}/${filename}`);
+  } else {
+    return [outputFilePath];
+  }
 }
 
 async function run() {
@@ -46,29 +90,14 @@ async function run() {
       return;
     }
 
-    const file = await fs.promises.readFile(outputFilePath);
-    const testResult: TestResult = xmlParser.parse(file.toString(), {
-      attributeNamePrefix: "____",
-      ignoreAttributes: false,
-      arrayMode: "strict",
-    });
+    const files = await parseFileNames(outputFilePath);
 
-    const cases = flatMap(testResult.testsuites, (suite) =>
-      flatMap(suite.testsuite, (suite) => suite.testcase)
+    const testResultPromises = files.map((file) =>
+      convertBufferToTestFailures(file)
     );
 
-    const parsedTestResult: TestFailure[] = cases
-      .filter((c) => c.failure)
-      .map((c) => {
-        c.failure?.[0].____message;
-        return new TestFailure(
-          c.____classname,
-          c.____name,
-          c.failure?.[0].____message ?? ""
-        );
-      });
-
-    const annotations = parseOutput(parsedTestResult);
+    const testResults = flatten(await Promise.all(testResultPromises));
+    const annotations = convertToAnnotations(testResults);
 
     annotations.forEach(function (annotation) {
       console.log(
