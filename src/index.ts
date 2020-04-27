@@ -7,7 +7,7 @@ import { promisify } from "util";
 import { TestFailure } from "./testfailure";
 import * as xmlParser from "fast-xml-parser";
 import * as parsing from "./parsing";
-import { TestResult } from "./testresult";
+import { TestResult, TestSuiteWrapper } from "./testresult";
 
 const readdir = promisify(fs.readdir);
 const asyncExec = promisify(exec);
@@ -44,16 +44,34 @@ function flatten<T>(array: T[][]): T[] {
 }
 
 async function convertBufferToTestFailures(
-  filename: string
+  filename: string,
+  oneSuitePerBuffer: boolean
 ): Promise<TestFailure[]> {
   const buffer = await fs.promises.readFile(filename);
-  const testResult: TestResult = xmlParser.parse(buffer.toString(), {
+
+  const parseOptions: Partial<xmlParser.X2jOptions> = {
     attributeNamePrefix: "____",
     ignoreAttributes: false,
     arrayMode: "strict",
-  });
+  };
 
-  const cases = flatMap(testResult.testsuites, (suite) =>
+  let testResult: Array<TestSuiteWrapper>;
+  if (oneSuitePerBuffer) {
+    const result: TestSuiteWrapper = xmlParser.parse(
+      buffer.toString(),
+      parseOptions
+    );
+    testResult = [result];
+  } else {
+    const result: TestResult = xmlParser.parse(buffer.toString(), parseOptions);
+    testResult = result.testsuites;
+  }
+
+  return convertTestSuitesToTestFailures(testResult);
+}
+
+function convertTestSuitesToTestFailures(testsuites: Array<TestSuiteWrapper>) {
+  const cases = flatMap(testsuites, (suite) =>
     flatMap(suite.testsuite, (suite) => suite.testcase)
   );
 
@@ -83,6 +101,8 @@ async function parseFileNames(outputFilePath: string) {
 
 async function run() {
   try {
+    const oneSuitePerFile = core.getInput("one_suite_per_file") === "true";
+
     const testResultPath = core.getInput("test_result_path");
     const outputFilePath = `${GITHUB_WORKSPACE}/${testResultPath}`;
 
@@ -93,7 +113,7 @@ async function run() {
     const files = await parseFileNames(outputFilePath);
 
     const testResultPromises = files.map((file) =>
-      convertBufferToTestFailures(file)
+      convertBufferToTestFailures(file, oneSuitePerFile)
     );
 
     const testResults = flatten(await Promise.all(testResultPromises));
