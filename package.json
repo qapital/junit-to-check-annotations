@@ -24,17 +24,17 @@
   },
   "homepage": "https://github.com/actions/javascript-action#readme",
   "dependencies": {
-    "@actions/core": "^1.2.4",
+    "@actions/core": ">=1.2.6",
     "@actions/exec": "^1.0.4",
     "@actions/github": "^2.2.0",
-    "acorn": "^7.3.1",
+    "acorn": "^7.4.1",
     "fast-xml-parser": "^3.16.0",
-    "minimist": ">=1.2.2",
-    "lodash": ">=4.17.19"
+    "lodash": ">=4.17.19",
+    "minimist": ">=1.2.2"
   },
   "devDependencies": {
     "@types/jest": "^24.0.13",
-    "@types/node": "^12.12.54",
+    "@types/node": "^12.19.6",
     "@typescript-eslint/parser": "^2.34.0",
     "@zeit/ncc": "^0.20.5",
     "jest": "^25.5.4",
