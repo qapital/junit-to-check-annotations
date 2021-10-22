@@ -1,5 +1,5 @@
 import * as core from "@actions/core";
-import { Octokit } from "@octokit/rest";
+import * as Octokit from "@octokit/rest";
 import { exec } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
@@ -13,7 +13,11 @@ const readdir = promisify(fs.readdir);
 const asyncExec = promisify(exec);
 const { GITHUB_WORKSPACE } = process.env;
 
-type Annotation = Octokit.ChecksUpdateParamsOutputAnnotations;
+type Annotation = {
+  path: string,
+  start_line: number,
+  message: string
+};
 
 // Regex match each line in the output and turn them into annotations
 function convertToAnnotations(testFailures: TestFailure[]): Annotation[] {
@@ -21,10 +25,6 @@ function convertToAnnotations(testFailures: TestFailure[]): Annotation[] {
     return {
       path: parsing.parsePath(GITHUB_WORKSPACE ?? "", testFailure),
       start_line: parsing.parseStartLine(testFailure),
-      end_line: parsing.parseEndLine(testFailure),
-      start_column: 1,
-      end_column: 1,
-      annotation_level: <const>"failure",
       message: `${testFailure.classname}.${
         testFailure.name
       }: ${parsing.parseMessage(testFailure)}`,
@@ -78,11 +78,11 @@ function convertTestSuitesToTestFailures(testsuites: Array<TestSuiteWrapper>) {
   return cases
     .filter((c) => c.failure)
     .map((c) => {
-      c.failure?.[0].____message;
+      c.failure?.____message;
       return new TestFailure(
         c.____classname,
         c.____name,
-        c.failure?.[0].____message ?? ""
+        c.failure?.____message ?? ""
       );
     });
 }
@@ -125,7 +125,7 @@ async function run() {
       );
     });
   } catch (error) {
-    core.setFailed(error.message);
+    core.setFailed("something went wrong: " + error);
   }
 }
 
