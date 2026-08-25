@@ -15,7 +15,9 @@ export interface TestSuite {
 export interface TestCase {
   ____classname: string;
   ____name: string;
-  failure?: Failure;
+  // `arrayMode: "strict"` makes every XML element an array, including a
+  // testcase's single <failure> element.
+  failure?: Failure[];
 }
 
 export interface Failure {
