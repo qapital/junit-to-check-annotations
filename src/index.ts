@@ -1,21 +1,22 @@
 import * as core from "@actions/core";
-import * as Octokit from "@octokit/rest";
-import { exec } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import { promisify } from "util";
 import { TestFailure } from "./testfailure";
-import * as xmlParser from "fast-xml-parser";
+import { XMLParser } from "fast-xml-parser";
 import * as parsing from "./parsing";
 import { TestResult, TestSuiteWrapper } from "./testresult";
 
 const readdir = promisify(fs.readdir);
-const asyncExec = promisify(exec);
 const { GITHUB_WORKSPACE } = process.env;
 
 type Annotation = {
   path: string,
   start_line: number,
+  end_line: number,
+  start_column: number,
+  end_column: number,
+  annotation_level: "failure",
   message: string
 };
 
@@ -25,6 +26,10 @@ function convertToAnnotations(testFailures: TestFailure[]): Annotation[] {
     return {
       path: parsing.parsePath(GITHUB_WORKSPACE ?? "", testFailure),
       start_line: parsing.parseStartLine(testFailure),
+      end_line: parsing.parseEndLine(testFailure),
+      start_column: 1,
+      end_column: 1,
+      annotation_level: "failure",
       message: `${testFailure.classname}.${
         testFailure.name
       }: ${parsing.parseMessage(testFailure)}`,
@@ -49,28 +54,25 @@ async function convertBufferToTestFailures(
 ): Promise<TestFailure[]> {
   const buffer = await fs.promises.readFile(filename);
 
-  const parseOptions: Partial<xmlParser.X2jOptions> = {
+  const parser = new XMLParser({
     attributeNamePrefix: "____",
     ignoreAttributes: false,
-    arrayMode: "strict",
-  };
+    isArray: (_name, _jpath, isLeafNode, isAttribute) => !isAttribute,
+  });
 
   let testResult: Array<TestSuiteWrapper>;
   if (oneSuitePerBuffer) {
-    const result: TestSuiteWrapper = xmlParser.parse(
-      buffer.toString(),
-      parseOptions
-    );
+    const result: TestSuiteWrapper = parser.parse(buffer.toString());
     testResult = [result];
   } else {
-    const result: TestResult = xmlParser.parse(buffer.toString(), parseOptions);
+    const result: TestResult = parser.parse(buffer.toString());
     testResult = result.testsuites;
   }
 
   return convertTestSuitesToTestFailures(testResult);
 }
 
-function convertTestSuitesToTestFailures(testsuites: Array<TestSuiteWrapper>) {
+export function convertTestSuitesToTestFailures(testsuites: Array<TestSuiteWrapper>) {
   const cases = flatMap(testsuites, (suite) =>
     flatMap(suite.testsuite, (suite) => suite.testcase)
   );
@@ -78,11 +80,10 @@ function convertTestSuitesToTestFailures(testsuites: Array<TestSuiteWrapper>) {
   return cases
     .filter((c) => c.failure)
     .map((c) => {
-      c.failure?.____message;
       return new TestFailure(
         c.____classname,
         c.____name,
-        c.failure?.____message ?? ""
+        c.failure?.[0]?.____message ?? ""
       );
     });
 }
@@ -125,7 +126,7 @@ async function run() {
       );
     });
   } catch (error) {
-    core.setFailed("something went wrong: " + error);
+    core.setFailed(error instanceof Error ? error.message : String(error));
   }
 }
 
