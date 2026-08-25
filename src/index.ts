@@ -3,7 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { promisify } from "util";
 import { TestFailure } from "./testfailure";
-import * as xmlParser from "fast-xml-parser";
+import { XMLParser } from "fast-xml-parser";
 import * as parsing from "./parsing";
 import { TestResult, TestSuiteWrapper } from "./testresult";
 
@@ -54,21 +54,18 @@ async function convertBufferToTestFailures(
 ): Promise<TestFailure[]> {
   const buffer = await fs.promises.readFile(filename);
 
-  const parseOptions: Partial<xmlParser.X2jOptions> = {
+  const parser = new XMLParser({
     attributeNamePrefix: "____",
     ignoreAttributes: false,
-    arrayMode: "strict",
-  };
+    isArray: (_name, _jpath, isLeafNode, isAttribute) => !isAttribute,
+  });
 
   let testResult: Array<TestSuiteWrapper>;
   if (oneSuitePerBuffer) {
-    const result: TestSuiteWrapper = xmlParser.parse(
-      buffer.toString(),
-      parseOptions
-    );
+    const result: TestSuiteWrapper = parser.parse(buffer.toString());
     testResult = [result];
   } else {
-    const result: TestResult = xmlParser.parse(buffer.toString(), parseOptions);
+    const result: TestResult = parser.parse(buffer.toString());
     testResult = result.testsuites;
   }
 
