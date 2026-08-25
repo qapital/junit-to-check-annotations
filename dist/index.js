@@ -178,13 +178,6 @@ exports.issueCommand = issueCommand;
 
 /***/ }),
 
-/***/ 129:
-/***/ (function(module) {
-
-module.exports = require("child_process");
-
-/***/ }),
-
 /***/ 141:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -1804,8 +1797,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.convertTestSuitesToTestFailures = void 0;
 const core = __importStar(__webpack_require__(470));
-const child_process_1 = __webpack_require__(129);
 const fs = __importStar(__webpack_require__(747));
 const path = __importStar(__webpack_require__(622));
 const util_1 = __webpack_require__(669);
@@ -1813,7 +1806,6 @@ const testfailure_1 = __webpack_require__(796);
 const xmlParser = __importStar(__webpack_require__(989));
 const parsing = __importStar(__webpack_require__(768));
 const readdir = (0, util_1.promisify)(fs.readdir);
-const asyncExec = (0, util_1.promisify)(child_process_1.exec);
 const { GITHUB_WORKSPACE } = process.env;
 // Regex match each line in the output and turn them into annotations
 function convertToAnnotations(testFailures) {
@@ -1861,10 +1853,10 @@ function convertTestSuitesToTestFailures(testsuites) {
         .filter((c) => c.failure)
         .map((c) => {
         var _a, _b, _c;
-        (_a = c.failure) === null || _a === void 0 ? void 0 : _a[0].____message;
-        return new testfailure_1.TestFailure(c.____classname, c.____name, (_c = (_b = c.failure) === null || _b === void 0 ? void 0 : _b[0].____message) !== null && _c !== void 0 ? _c : "");
+        return new testfailure_1.TestFailure(c.____classname, c.____name, (_c = (_b = (_a = c.failure) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.____message) !== null && _c !== void 0 ? _c : "");
     });
 }
+exports.convertTestSuitesToTestFailures = convertTestSuitesToTestFailures;
 function parseFileNames(outputFilePath) {
     return __awaiter(this, void 0, void 0, function* () {
         const directory = fs.lstatSync(outputFilePath).isDirectory();
@@ -1897,7 +1889,7 @@ function run() {
             });
         }
         catch (error) {
-            core.setFailed(error.message);
+            core.setFailed(error instanceof Error ? error.message : String(error));
         }
     });
 }
